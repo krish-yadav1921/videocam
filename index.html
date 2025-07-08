@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Backchodi Bro UI</title>
+   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="hi.css">
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -14,6 +15,23 @@
     <img src="homepage-icon-house-illustration-sign-home-symbol-building-logo-vector.jpg" alt="Home" class="icon">
     <input type="text" placeholder="Search" class="search-input">
     <img src="1200x630wa.png" alt="Flash" class="icon">
+    <button class="group relative flex items-center gap-3 px-6 py-3 rounded-xl bg-white text-black font-semibold border border-gray-300 shadow-md hover:shadow-xl transition duration-300 overflow-hidden hover:scale-105">
+  <!-- Glow Effect Background -->
+  <span class="absolute inset-0 bg-gradient-to-r from-blue-500 via-pink-500 to-yellow-500 opacity-0 group-hover:opacity-20 blur-md transition duration-500"></span>
+  
+  <!-- Google Icon -->
+  <svg class="w-5 h-5 z-10" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg">
+    <path d="M533.5 278.4c0-17.4-1.6-34.3-4.6-50.5H272v95.4h147.4c-6.4 34.6-25.2 63.9-53.7 83.3v69.2h86.7c50.7-46.7 81.1-115.5 81.1-197.4z" fill="#4285F4"/>
+    <path d="M272 544.3c72.6 0 133.6-24 178.2-65.3l-86.7-69.2c-24.1 16.2-55 25.7-91.5 25.7-70.4 0-130.1-47.5-151.5-111.4H32.3v69.8C76.5 474.8 168.6 544.3 272 544.3z" fill="#34A853"/>
+    <path d="M120.5 323.9c-10.7-31.2-10.7-64.7 0-95.9v-69.8H32.3c-38.4 76.8-38.4 168.7 0 245.5l88.2-69.8z" fill="#FBBC05"/>
+    <path d="M272 107.7c39.5-.6 77.3 13.5 106.4 38.3l79.6-79.6C410.9 23.2 343.9 0 272 0 168.6 0 76.5 69.5 32.3 178.2l88.2 69.8C141.9 155.2 201.6 107.7 272 107.7z" fill="#EA4335"/>
+  </svg>
+
+  <!-- Text -->
+  <span class="z-10">Login with Google</span>
+</button>
+
+
   </div>
 
   <!-- Cards Container -->
@@ -43,12 +61,53 @@
 
   <!-- Bottom Nav -->
   <div class="bottom-nav">
-    <img src="OIP.jpg" alt="Hot" class="icon">
+    <img src="OIP.png" alt="Hot" class="icon">
     <img src="pngtree-trophy-sign-icon-champion-vector-picture-image_10545046.png" alt="Trophy" class="icon">
     <img src="Screenshot 2025-07-08 205353.png" alt="Community" class="icon">
     <img src="online-chat-computer-icons-symbol-icon-design-png-favpng-zZZdFEDePjG57FWR28cctNnca.jpg" alt="Chat" class="icon">
     <img src="download.webp" alt="Profile" class="icon rounded-full">
   </div>
+ <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAp444Vi-iivVHmY-4f0A8YFraABgknkf4",
+    authDomain: "krish-d0206.firebaseapp.com",
+    projectId: "krish-d0206",
+    storageBucket: "krish-d0206.appspot.com",
+    messagingSenderId: "669277883647",
+    appId: "1:669277883647:web:59c952c78093e072a910ca",
+    measurementId: "G-EQVQR43FEZ"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+
+  // ✅ THIS IS THE CORRECT EVENT TARGET
+  // 🔥 Target the button using its text instead of class
+const buttons = document.querySelectorAll("button");
+
+buttons.forEach((btn) => {
+  if (btn.textContent.trim() === "Login with Google") {
+    btn.addEventListener("click", () => {
+      signInWithPopup(auth, provider)
+        .then((result) => {
+          const user = result.user;
+          alert(`🔥 Welcome ${user.displayName}`);
+          console.log(user); // You can also show name/photo here in UI
+        })
+        .catch((error) => {
+          console.error("Login Failed:", error.message);
+        });
+    });
+  }
+});
+
+</script>
+
+
 
 </body>
 </html>
