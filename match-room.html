@@ -1,35 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Match Room</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🔥 Match Room</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-[#0a0f1a] text-white flex flex-col items-center justify-center min-h-screen">
-  <h1 class="text-3xl font-bold mb-6">🔥 Match Room
-  </h1>
+<body class="bg-[#0d1321] text-white min-h-screen flex items-center justify-center px-4">
 
-  <div class="bg-[#1a2332] p-8 rounded-xl shadow-lg text-center w-full max-w-md">
-    <div class="flex items-center justify-around mb-4">
-      <div class="text-center">
-        <img id="player1Photo" class="w-20 h-20 rounded-full border-4 border-blue-500 mx-auto" src="" alt="P1">
-        <p id="player1Name" class="mt-2 text-sm">Waiting...</p>
+  <div class="text-center space-y-6">
+    <h1 class="text-3xl font-bold">🔥 Match Room</h1>
+
+    <div class="bg-[#1e293b] p-6 rounded-xl w-full max-w-md mx-auto">
+      <div class="flex items-center justify-between mb-4">
+        <div class="text-center">
+          <img id="player1-photo" src="" class="w-20 h-20 rounded-full border-4 border-blue-500 mx-auto" />
+          <p id="player1-name" class="mt-2">Waiting...</p>
+        </div>
+        <span class="text-xl font-bold">VS</span>
+        <div class="text-center">
+          <img id="player2-photo" src="" class="w-20 h-20 rounded-full border-4 border-red-500 mx-auto" />
+          <p id="player2-name" class="mt-2">Waiting...</p>
+        </div>
       </div>
-      <p class="text-xl font-bold">VS</p>
-      <div class="text-center">
-        <img id="player2Photo" class="w-20 h-20 rounded-full border-4 border-red-500 mx-auto" src="" alt="P2">
-        <p id="player2Name" class="mt-2 text-sm">Waiting...</p>
-      </div>
+      <p class="text-sm text-gray-400" id="match-id">Loading...</p>
+      <button id="readyBtn" class="mt-4 px-4 py-2 bg-green-600 rounded-xl font-semibold hover:bg-green-700 hidden">
+        ✅ Ready to Battle
+      </button>
     </div>
-    <p id="matchIdDisplay" class="text-xs text-gray-400"></p>
-
-    <button id="readyBtn" class="hidden mt-4 px-6 py-2 bg-green-500 hover:bg-green-600 rounded-lg font-semibold">Ready to Battle</button>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -38,38 +41,43 @@
       projectId: "krish-d0206",
       storageBucket: "krish-d0206.appspot.com",
       messagingSenderId: "669277883647",
-      appId: "1:669277883647:web:59c952c78093e072a910ca",
-      measurementId: "G-EQVQR43FEZ"
+      appId: "1:669277883647:web:59c952c78093e072a910ca"
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const matchId = urlParams.get("matchId");
-
-    const matchRef = doc(db, "roastMatches", matchId);
-    const player1Photo = document.getElementById("player1Photo");
-    const player2Photo = document.getElementById("player2Photo");
-    const player1Name = document.getElementById("player1Name");
-    const player2Name = document.getElementById("player2Name");
-    const matchIdDisplay = document.getElementById("matchIdDisplay");
+    const player1Photo = document.getElementById("player1-photo");
+    const player2Photo = document.getElementById("player2-photo");
+    const player1Name = document.getElementById("player1-name");
+    const player2Name = document.getElementById("player2-name");
+    const matchIdText = document.getElementById("match-id");
     const readyBtn = document.getElementById("readyBtn");
 
-    matchIdDisplay.textContent = "Match ID: " + matchId;
+    const urlParams = new URLSearchParams(window.location.search);
+    const matchId = urlParams.get("matchId");
+    let currentUser = null;
 
-    let currentUserId = null;
+    matchIdText.textContent = `Match ID: ${matchId}`;
 
     onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        currentUserId = user.uid;
+      if (!user) {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+        return;
+      }
 
-        const matchSnap = await getDoc(matchRef);
+      currentUser = user;
+      const matchRef = doc(db, "roastMatches", matchId);
+      const matchSnap = await getDoc(matchRef);
+
+      if (matchSnap.exists()) {
         const data = matchSnap.data();
 
-        // Join as player2 if slot is empty and not already player1
-        if (!data.player2 && data.player1 !== user.uid) {
+        // Player 1 Info Already Set by Creator
+        // Add player2 if empty and current user is not player1
+        if (!data.player2Info && data.player1 !== user.uid) {
           await updateDoc(matchRef, {
             player2: user.uid,
             player2Info: {
@@ -78,29 +86,26 @@
             }
           });
         }
-
-        // Listen for real-time updates
-        onSnapshot(matchRef, (docSnap) => {
-          const data = docSnap.data();
-
-          if (data.player1Info) {
-            player1Name.textContent = data.player1Info.name;
-            player1Photo.src = data.player1Info.photo;
-          }
-
-          if (data.player2Info) {
-            player2Name.textContent = data.player2Info.name;
-            player2Photo.src = data.player2Info.photo;
-          }
-
-          if (data.player1 && data.player2) {
-            readyBtn.classList.remove("hidden");
-          }
-        });
-      } else {
-        alert("Please login first.");
-        window.location.href = "/";
       }
+
+      // Real-time listener
+      onSnapshot(doc(db, "roastMatches", matchId), (docSnap) => {
+        const data = docSnap.data();
+
+        if (data?.player1Info) {
+          player1Photo.src = data.player1Info.photo;
+          player1Name.textContent = data.player1Info.name;
+        }
+        if (data?.player2Info) {
+          player2Photo.src = data.player2Info.photo;
+          player2Name.textContent = data.player2Info.name;
+        }
+
+        // Show button only when both players are present
+        if (data?.player1Info && data?.player2Info) {
+          readyBtn.classList.remove("hidden");
+        }
+      });
     });
   </script>
 </body>
