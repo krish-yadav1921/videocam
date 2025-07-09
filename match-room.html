@@ -1,34 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Match Room</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center p-4">
 
-  <h1 class="text-3xl font-bold mb-8">🔥 Battle Room 🔥</h1>
+  <h1 class="text-3xl font-bold mb-6">🔥 Match Room</h1>
 
-  <div class="flex gap-10 items-center">
-    <!-- Player 1 -->
-    <div class="flex flex-col items-center">
-      <img id="player1Photo" class="w-32 h-32 rounded-full border-4 border-blue-500 mb-2" src="" alt="Player 1">
-      <h2 id="player1Name" class="text-xl font-semibold">Loading...</h2>
+  <div id="matchInfo" class="bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col gap-6 w-full max-w-md text-center">
+    <div id="players" class="flex justify-around items-center gap-4">
+      <div class="flex flex-col items-center gap-2">
+        <img id="player1Photo" class="w-20 h-20 rounded-full border-4 border-blue-500" />
+        <p id="player1Name" class="font-semibold text-lg">Player 1</p>
+      </div>
+      <span class="text-3xl font-bold">VS</span>
+      <div class="flex flex-col items-center gap-2">
+        <img id="player2Photo" class="w-20 h-20 rounded-full border-4 border-red-500" />
+        <p id="player2Name" class="font-semibold text-lg">Player 2</p>
+      </div>
     </div>
 
-    <span class="text-4xl font-bold">VS</span>
-
-    <!-- Player 2 -->
-    <div class="flex flex-col items-center">
-      <img id="player2Photo" class="w-32 h-32 rounded-full border-4 border-red-500 mb-2" src="" alt="Player 2">
-      <h2 id="player2Name" class="text-xl font-semibold">Waiting...</h2>
-    </div>
+    <p id="matchId" class="text-sm text-gray-400"></p>
   </div>
 
+  <!-- Firebase Script -->
   <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-    import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAp444Vi-iivVHmY-4f0A8YFraABgknkf4",
@@ -42,34 +44,54 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const auth = getAuth(app);
 
     const urlParams = new URLSearchParams(window.location.search);
-    const matchId = urlParams.get('matchId');
+    const matchId = urlParams.get("matchId");
 
-    async function loadMatch() {
-      if (!matchId) {
-        alert("Match ID not found in URL");
-        return;
-      }
+    document.getElementById("matchId").textContent = "Match ID: " + matchId;
 
+    const player1Photo = document.getElementById("player1Photo");
+    const player1Name = document.getElementById("player1Name");
+    const player2Photo = document.getElementById("player2Photo");
+    const player2Name = document.getElementById("player2Name");
+
+    async function loadMatchData() {
       const docRef = doc(db, "roastMatches", matchId);
-      const snapshot = await getDoc(docRef);
-      if (!snapshot.exists()) {
-        alert("Match not found");
-        return;
-      }
+      const docSnap = await getDoc(docRef);
 
-      const data = snapshot.data();
-      document.getElementById("player1Name").textContent = data.player1Name || "Player 1";
-      document.getElementById("player1Photo").src = data.player1Photo || "download.webp";
+      if (docSnap.exists()) {
+        const data = docSnap.data();
 
-      if (data.player2Name) {
-        document.getElementById("player2Name").textContent = data.player2Name;
-        document.getElementById("player2Photo").src = data.player2Photo;
+        if (data.player1Info) {
+          player1Photo.src = data.player1Info.photoURL;
+          player1Name.textContent = data.player1Info.displayName;
+        } else {
+          player1Photo.src = "https://via.placeholder.com/80";
+          player1Name.textContent = "Waiting...";
+        }
+
+        if (data.player2Info) {
+          player2Photo.src = data.player2Info.photoURL;
+          player2Name.textContent = data.player2Info.displayName;
+        } else {
+          player2Photo.src = "https://via.placeholder.com/80";
+          player2Name.textContent = "Waiting...";
+        }
+
+      } else {
+        alert("❌ Match not found");
       }
     }
 
-    loadMatch();
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        loadMatchData();
+      } else {
+        alert("⚠️ Please login first!");
+        window.location.href = "index.html";
+      }
+    });
   </script>
 
 </body>
