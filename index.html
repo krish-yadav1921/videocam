@@ -36,14 +36,6 @@
       </div>
       <button class="join-btn">JOIN NOW</button>
     </div>
-    <div class="card card-with-button">
-      <div class="players">
-        <img src="download.webp" alt="Player 1" class="avatar">
-        <img src="1200x630wa.png" alt="VS" class="vs-icon">
-        <img src="download.webp" alt="Player 2" class="avatar">
-      </div>
-      <button class="join-btn">JOIN NOW</button>
-    </div>
   </div>
 
   <!-- Bottom Nav -->
@@ -59,7 +51,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, query, where, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAp444Vi-iivVHmY-4f0A8YFraABgknkf4",
@@ -89,7 +81,7 @@
         });
     });
 
-    // JOIN NOW Button
+    // JOIN NOW
     document.querySelectorAll(".join-btn").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const user = auth.currentUser;
@@ -97,28 +89,42 @@
           alert("⚠️ Please login first!");
           return;
         }
+
         try {
-          const docRef = await addDoc(collection(db, "roastMatches"), {
-            player1: user.uid,
-            player1Name: user.displayName,
-            player1Photo: user.photoURL,
-            player2: null,
-            player2Name: null,
-            player2Photo: null,
-            video1: null,
-            video2: null,
-            votes1: 0,
-            votes2: 0,
-            createdAt: new Date()
-          });
-          // Redirect to match-room page with ID
-          window.location.href = `match-room.html?matchId=${docRef.id}`;
+          const q = query(collection(db, "roastMatches"), where("player2", "==", null));
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty) {
+            const matchDoc = querySnapshot.docs[0];
+            await updateDoc(matchDoc.ref, {
+              player2: user.uid,
+              player2Name: user.displayName,
+              player2Photo: user.photoURL,
+            });
+            alert("🎯 You joined an existing match!");
+            window.location.href = `match-room.html?matchId=${matchDoc.id}`;
+          } else {
+            const docRef = await addDoc(collection(db, "roastMatches"), {
+              player1: user.uid,
+              player1Name: user.displayName,
+              player1Photo: user.photoURL,
+              player2: null,
+              player2Name: null,
+              player2Photo: null,
+              video1: null,
+              video2: null,
+              votes1: 0,
+              votes2: 0,
+              createdAt: new Date()
+            });
+            alert("🔥 Match Created! ID: " + docRef.id);
+            window.location.href = `match-room.html?matchId=${docRef.id}`;
+          }
         } catch (e) {
-          console.error("❌ Firestore Error: ", e);
+          console.error("❌ Error joining match:", e);
         }
       });
     });
   </script>
-
 </body>
 </html>
