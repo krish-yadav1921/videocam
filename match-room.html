@@ -62,43 +62,56 @@
     let currentUser = null;
 
     onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        currentUser = user;
-        const matchRef = doc(db, "roastMatches", matchId);
-        const matchSnap = await getDoc(matchRef);
-        if (matchSnap.exists()) {
-          const data = matchSnap.data();
+      if (!user) {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+        return;
+      }
 
-          if (!data.player2Info && data.player1 !== user.uid) {
-            await updateDoc(matchRef, {
-              player2: user.uid,
-              player2Info: {
-                name: user.displayName,
-                photo: user.photoURL
-              }
-            });
-          }
+      currentUser = user;
+      const matchRef = doc(db, "roastMatches", matchId);
+      const matchSnap = await getDoc(matchRef);
+
+      if (!matchSnap.exists()) {
+        alert("⚠️ Match not found!");
+        return;
+      }
+
+      const matchData = matchSnap.data();
+
+      // Auto assign player2 if empty
+      if (!matchData.player2Info && matchData.player1 !== user.uid) {
+        try {
+          await updateDoc(matchRef, {
+            player2: user.uid,
+            player2Info: {
+              name: user.displayName,
+              photo: user.photoURL
+            }
+          });
+        } catch (err) {
+          console.error("Failed to assign player 2:", err);
+        }
+      }
+
+      // Real-time UI updates
+      onSnapshot(matchRef, (docSnap) => {
+        const data = docSnap.data();
+
+        if (data.player1Info) {
+          player1Photo.src = data.player1Info.photo || "default1.png";
+          player1Name.textContent = data.player1Info.name || "Player 1";
         }
 
-        onSnapshot(doc(db, "roastMatches", matchId), (docSnap) => {
-          const data = docSnap.data();
-          if (data.player1Info) {
-            player1Photo.src = data.player1Info.photo || "default1.png";
-            player1Name.textContent = data.player1Info.name || "Player 1";
-          }
-          if (data.player2Info) {
-            player2Photo.src = data.player2Info.photo || "default2.png";
-            player2Name.textContent = data.player2Info.name || "Player 2";
-          }
+        if (data.player2Info) {
+          player2Photo.src = data.player2Info.photo || "default2.png";
+          player2Name.textContent = data.player2Info.name || "Player 2";
+        }
 
-          if (data.player1Info && data.player2Info) {
-            readyBtn.classList.remove("hidden");
-          }
-        });
-      } else {
-        const provider = new GoogleAuthProvider();
-        signInWithPopup(auth, provider);
-      }
+        if (data.player1Info && data.player2Info) {
+          readyBtn.classList.remove("hidden");
+        }
+      });
     });
   </script>
 </body>
