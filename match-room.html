@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Match Room</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+
+  <h1 class="text-3xl font-bold mb-8">🔥 Battle Room 🔥</h1>
+
+  <div class="flex gap-10 items-center">
+    <!-- Player 1 -->
+    <div class="flex flex-col items-center">
+      <img id="player1Photo" class="w-32 h-32 rounded-full border-4 border-blue-500 mb-2" src="" alt="Player 1">
+      <h2 id="player1Name" class="text-xl font-semibold">Loading...</h2>
+    </div>
+
+    <span class="text-4xl font-bold">VS</span>
+
+    <!-- Player 2 -->
+    <div class="flex flex-col items-center">
+      <img id="player2Photo" class="w-32 h-32 rounded-full border-4 border-red-500 mb-2" src="" alt="Player 2">
+      <h2 id="player2Name" class="text-xl font-semibold">Waiting...</h2>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAp444Vi-iivVHmY-4f0A8YFraABgknkf4",
+      authDomain: "krish-d0206.firebaseapp.com",
+      projectId: "krish-d0206",
+      storageBucket: "krish-d0206.appspot.com",
+      messagingSenderId: "669277883647",
+      appId: "1:669277883647:web:59c952c78093e072a910ca",
+      measurementId: "G-EQVQR43FEZ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const matchId = urlParams.get('matchId');
+
+    async function loadMatch() {
+      if (!matchId) {
+        alert("Match ID not found in URL");
+        return;
+      }
+
+      const docRef = doc(db, "roastMatches", matchId);
+      const snapshot = await getDoc(docRef);
+      if (!snapshot.exists()) {
+        alert("Match not found");
+        return;
+      }
+
+      const data = snapshot.data();
+      document.getElementById("player1Name").textContent = data.player1Name || "Player 1";
+      document.getElementById("player1Photo").src = data.player1Photo || "download.webp";
+
+      if (data.player2Name) {
+        document.getElementById("player2Name").textContent = data.player2Name;
+        document.getElementById("player2Photo").src = data.player2Photo;
+      }
+    }
+
+    loadMatch();
+  </script>
+
+</body>
+</html>
