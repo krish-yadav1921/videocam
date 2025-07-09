@@ -6,11 +6,12 @@
   <title>Match Room</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center p-4">
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center p-6">
 
   <h1 class="text-3xl font-bold mb-6">🔥 Match Room</h1>
 
-  <div id="matchInfo" class="bg-gray-800 p-6 rounded-xl shadow-lg flex flex-col gap-6 w-full max-w-md text-center">
+  <div id="matchInfo" class="bg-gray-800 p-6 rounded-xl shadow-xl flex flex-col gap-6 w-full max-w-md text-center">
+    <!-- Players -->
     <div id="players" class="flex justify-around items-center gap-4">
       <div class="flex flex-col items-center gap-2">
         <img id="player1Photo" class="w-20 h-20 rounded-full border-4 border-blue-500" />
@@ -22,6 +23,11 @@
         <p id="player2Name" class="font-semibold text-lg">Player 2</p>
       </div>
     </div>
+
+    <!-- Ready Button -->
+    <button id="readyBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full text-lg shadow-md transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+      ✅ Ready to Battle
+    </button>
 
     <p id="matchId" class="text-sm text-gray-400"></p>
   </div>
@@ -49,12 +55,14 @@
     const urlParams = new URLSearchParams(window.location.search);
     const matchId = urlParams.get("matchId");
 
-    document.getElementById("matchId").textContent = "Match ID: " + matchId;
-
     const player1Photo = document.getElementById("player1Photo");
     const player1Name = document.getElementById("player1Name");
     const player2Photo = document.getElementById("player2Photo");
     const player2Name = document.getElementById("player2Name");
+    const matchIdText = document.getElementById("matchId");
+    const readyBtn = document.getElementById("readyBtn");
+
+    matchIdText.textContent = "Match ID: " + matchId;
 
     async function loadMatchData() {
       const docRef = doc(db, "roastMatches", matchId);
@@ -63,6 +71,7 @@
       if (docSnap.exists()) {
         const data = docSnap.data();
 
+        // Player 1
         if (data.player1Info) {
           player1Photo.src = data.player1Info.photoURL;
           player1Name.textContent = data.player1Info.displayName;
@@ -71,6 +80,7 @@
           player1Name.textContent = "Waiting...";
         }
 
+        // Player 2
         if (data.player2Info) {
           player2Photo.src = data.player2Info.photoURL;
           player2Name.textContent = data.player2Info.displayName;
@@ -78,6 +88,9 @@
           player2Photo.src = "https://via.placeholder.com/80";
           player2Name.textContent = "Waiting...";
         }
+
+        // Enable button only if both players joined
+        readyBtn.disabled = !(data.player1Info && data.player2Info);
 
       } else {
         alert("❌ Match not found");
@@ -91,6 +104,12 @@
         alert("⚠️ Please login first!");
         window.location.href = "index.html";
       }
+    });
+
+    readyBtn.addEventListener("click", () => {
+      alert("🚀 Battle Starting Soon!");
+      // You can redirect to voting or battle page here
+      // window.location.href = `vote.html?matchId=${matchId}`;
     });
   </script>
 
