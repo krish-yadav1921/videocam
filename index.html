@@ -6,52 +6,31 @@
   <title>Backchodi Bro UI</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-[#0d1321] text-white min-h-screen flex flex-col">
+<body class="bg-[#0d1321] text-white min-h-screen flex flex-col items-center justify-center p-4">
 
-  <!-- Top Bar -->
-  <div class="flex justify-between items-center bg-[#1e293b] p-4">
-    <img src="homepage-icon-house-illustration-sign-home-symbol-building-logo-vector.jpg" alt="Home" class="w-10 h-10">
-    <input type="text" placeholder="Search" class="bg-gray-800 text-white rounded px-3 py-1 w-1/2 outline-none" />
-    <img src="1200x630wa.png" alt="Flash" class="w-10 h-10">
-    <button id="googleLoginBtn" class="bg-white text-black px-4 py-2 rounded-xl font-semibold hover:bg-gray-200 transition">
-      Login with Google
+  <h1 class="text-3xl font-bold mb-4">Backchodi Bro</h1>
+
+  <!-- Google Login -->
+  <button id="googleLoginBtn" class="mb-6 px-6 py-3 bg-white text-black rounded-lg font-semibold shadow hover:scale-105 transition">
+    🔐 Login with Google
+  </button>
+
+  <!-- Match Card -->
+  <div class="bg-[#1e293b] p-6 rounded-xl w-full max-w-md text-center space-y-4">
+    <div class="flex items-center justify-between">
+      <img src="download.webp" class="w-16 h-16 rounded-full border-2 border-blue-500" />
+      <span class="text-xl font-bold">VS</span>
+      <img src="download.webp" class="w-16 h-16 rounded-full border-2 border-red-500" />
+    </div>
+    <button class="join-btn mt-4 px-4 py-2 bg-green-600 rounded-xl font-semibold hover:bg-green-700">
+      🚀 JOIN NOW
     </button>
   </div>
 
-  <!-- Cards Container -->
-  <div class="flex flex-wrap justify-center gap-6 p-6">
-    <div class="bg-[#1e293b] rounded-xl p-4 w-64 text-center shadow-lg">
-      <div class="flex justify-center items-center gap-2">
-        <img src="download.webp" alt="Player 1" class="w-16 h-16 rounded-full border-2 border-blue-500">
-        <img src="1200x630wa.png" alt="VS" class="w-8 h-8">
-        <img src="download.webp" alt="Player 2" class="w-16 h-16 rounded-full border-2 border-red-500">
-      </div>
-      <button class="join-btn bg-green-600 mt-4 px-4 py-2 rounded-xl hover:bg-green-700 transition">JOIN NOW</button>
-    </div>
-
-    <div class="bg-[#1e293b] rounded-xl p-4 w-64 text-center shadow-lg">
-      <div class="flex justify-center items-center gap-2">
-        <img src="download.webp" alt="Player 1" class="w-16 h-16 rounded-full border-2 border-blue-500">
-        <img src="1200x630wa.png" alt="VS" class="w-8 h-8">
-        <img src="download.webp" alt="Player 2" class="w-16 h-16 rounded-full border-2 border-red-500">
-      </div>
-      <button class="join-btn bg-green-600 mt-4 px-4 py-2 rounded-xl hover:bg-green-700 transition">JOIN NOW</button>
-    </div>
-  </div>
-
-  <!-- Bottom Nav -->
-  <div class="flex justify-around items-center bg-[#1e293b] p-4 fixed bottom-0 w-full">
-    <img src="OIP.png" alt="Hot" class="w-8 h-8">
-    <img src="pngtree-trophy-sign-icon-champion-vector-picture-image_10545046.png" alt="Trophy" class="w-8 h-8">
-    <img src="Screenshot 2025-07-08 205353.png" alt="Community" class="w-8 h-8">
-    <img src="online-chat-computer-icons-symbol-icon-design-png-favpng-zZZdFEDePjG57FWR28cctNnca.jpg" alt="Chat" class="w-8 h-8">
-    <img src="download.webp" alt="Profile" class="w-8 h-8 rounded-full">
-  </div>
-
-  <!-- Firebase Auth + Firestore Logic -->
+  <!-- Firebase Scripts -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -65,32 +44,32 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const provider = new GoogleAuthProvider();
     const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
 
+    const loginBtn = document.getElementById("googleLoginBtn");
     let currentUser = null;
 
-    // Google Login
-    const loginBtn = document.getElementById("googleLoginBtn");
-    loginBtn.addEventListener("click", async () => {
-      try {
-        const result = await signInWithPopup(auth, provider);
-        currentUser = result.user;
-        alert(`🔥 Welcome ${currentUser.displayName}`);
-      } catch (error) {
-        console.error("Login Failed:", error.message);
-      }
+    // Login
+    loginBtn.addEventListener("click", () => {
+      signInWithPopup(auth, provider)
+        .then(result => {
+          alert(`✅ Welcome ${result.user.displayName}`);
+        })
+        .catch(err => {
+          alert("Login Failed: " + err.message);
+        });
     });
 
-    // JOIN NOW
-    document.querySelectorAll(".join-btn").forEach((btn) => {
+    // JOIN NOW button logic
+    document.querySelectorAll(".join-btn").forEach(btn => {
       btn.addEventListener("click", async () => {
-        if (!auth.currentUser) {
+        const user = auth.currentUser;
+        if (!user) {
           alert("⚠️ Please login first!");
           return;
         }
 
-        const user = auth.currentUser;
         try {
           const docRef = await addDoc(collection(db, "roastMatches"), {
             player1: user.uid,
@@ -107,13 +86,22 @@
             createdAt: new Date()
           });
 
-          // Redirect to match room with matchId
+          alert("🔥 Match Created!");
           window.location.href = `match-room.html?matchId=${docRef.id}`;
         } catch (e) {
           console.error("❌ Firestore Error: ", e);
+          alert("Error creating match");
         }
       });
     });
+
+    // Check login status on load
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUser = user;
+      }
+    });
   </script>
+
 </body>
 </html>
