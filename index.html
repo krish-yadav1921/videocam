@@ -28,7 +28,6 @@
 
   <!-- Cards Container -->
   <div class="cards-container">
-    <!-- Card 1 -->
     <div class="card card-with-button">
       <div class="players">
         <img src="download.webp" alt="Player 1" class="avatar">
@@ -37,7 +36,6 @@
       </div>
       <button class="join-btn">JOIN NOW</button>
     </div>
-    <!-- Card 2 -->
     <div class="card card-with-button">
       <div class="players">
         <img src="download.webp" alt="Player 1" class="avatar">
@@ -57,7 +55,7 @@
     <img src="download.webp" alt="Profile" class="icon rounded-full">
   </div>
 
-  <!-- Firebase Auth + Firestore Logic -->
+  <!-- Firebase Script -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -85,14 +83,13 @@
         .then((result) => {
           const user = result.user;
           alert(`🔥 Welcome ${user.displayName}`);
-          console.log(user);
         })
         .catch((error) => {
           console.error("Login Failed:", error.message);
         });
     });
 
-    // JOIN NOW -> Firestore entry
+    // JOIN NOW Button
     document.querySelectorAll(".join-btn").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const user = auth.currentUser;
@@ -103,19 +100,25 @@
         try {
           const docRef = await addDoc(collection(db, "roastMatches"), {
             player1: user.uid,
+            player1Name: user.displayName,
+            player1Photo: user.photoURL,
             player2: null,
+            player2Name: null,
+            player2Photo: null,
             video1: null,
             video2: null,
             votes1: 0,
             votes2: 0,
             createdAt: new Date()
           });
-          alert("🔥 Match Created! ID: " + docRef.id);
+          // Redirect to match-room page with ID
+          window.location.href = `match-room.html?matchId=${docRef.id}`;
         } catch (e) {
           console.error("❌ Firestore Error: ", e);
         }
       });
     });
   </script>
+
 </body>
 </html>
