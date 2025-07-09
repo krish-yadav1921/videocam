@@ -14,12 +14,12 @@
     <div class="bg-[#1e293b] p-6 rounded-xl w-full max-w-md mx-auto">
       <div class="flex items-center justify-between mb-4">
         <div class="text-center">
-          <img id="player1-photo" src="" class="w-20 h-20 rounded-full border-4 border-blue-500 mx-auto" />
+          <img id="player1-photo" src="default1.png" class="w-20 h-20 rounded-full border-4 border-blue-500 mx-auto" />
           <p id="player1-name" class="mt-2">Waiting...</p>
         </div>
         <span class="text-xl font-bold">VS</span>
         <div class="text-center">
-          <img id="player2-photo" src="" class="w-20 h-20 rounded-full border-4 border-red-500 mx-auto" />
+          <img id="player2-photo" src="default2.png" class="w-20 h-20 rounded-full border-4 border-red-500 mx-auto" />
           <p id="player2-name" class="mt-2">Waiting...</p>
         </div>
       </div>
@@ -48,6 +48,9 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const matchId = urlParams.get("matchId");
+
     const player1Photo = document.getElementById("player1-photo");
     const player2Photo = document.getElementById("player2-photo");
     const player1Name = document.getElementById("player1-name");
@@ -55,57 +58,47 @@
     const matchIdText = document.getElementById("match-id");
     const readyBtn = document.getElementById("readyBtn");
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const matchId = urlParams.get("matchId");
+    matchIdText.textContent = `Match ID: ${matchId}`;
     let currentUser = null;
 
-    matchIdText.textContent = `Match ID: ${matchId}`;
-
     onAuthStateChanged(auth, async (user) => {
-      if (!user) {
+      if (user) {
+        currentUser = user;
+        const matchRef = doc(db, "roastMatches", matchId);
+        const matchSnap = await getDoc(matchRef);
+        if (matchSnap.exists()) {
+          const data = matchSnap.data();
+
+          if (!data.player2Info && data.player1 !== user.uid) {
+            await updateDoc(matchRef, {
+              player2: user.uid,
+              player2Info: {
+                name: user.displayName,
+                photo: user.photoURL
+              }
+            });
+          }
+        }
+
+        onSnapshot(doc(db, "roastMatches", matchId), (docSnap) => {
+          const data = docSnap.data();
+          if (data.player1Info) {
+            player1Photo.src = data.player1Info.photo || "default1.png";
+            player1Name.textContent = data.player1Info.name || "Player 1";
+          }
+          if (data.player2Info) {
+            player2Photo.src = data.player2Info.photo || "default2.png";
+            player2Name.textContent = data.player2Info.name || "Player 2";
+          }
+
+          if (data.player1Info && data.player2Info) {
+            readyBtn.classList.remove("hidden");
+          }
+        });
+      } else {
         const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
-        return;
+        signInWithPopup(auth, provider);
       }
-
-      currentUser = user;
-      const matchRef = doc(db, "roastMatches", matchId);
-      const matchSnap = await getDoc(matchRef);
-
-      if (matchSnap.exists()) {
-        const data = matchSnap.data();
-
-        // Player 1 Info Already Set by Creator
-        // Add player2 if empty and current user is not player1
-        if (!data.player2Info && data.player1 !== user.uid) {
-          await updateDoc(matchRef, {
-            player2: user.uid,
-            player2Info: {
-              name: user.displayName,
-              photo: user.photoURL
-            }
-          });
-        }
-      }
-
-      // Real-time listener
-      onSnapshot(doc(db, "roastMatches", matchId), (docSnap) => {
-        const data = docSnap.data();
-
-        if (data?.player1Info) {
-          player1Photo.src = data.player1Info.photo;
-          player1Name.textContent = data.player1Info.name;
-        }
-        if (data?.player2Info) {
-          player2Photo.src = data.player2Info.photo;
-          player2Name.textContent = data.player2Info.name;
-        }
-
-        // Show button only when both players are present
-        if (data?.player1Info && data?.player2Info) {
-          readyBtn.classList.remove("hidden");
-        }
-      });
     });
   </script>
 </body>
