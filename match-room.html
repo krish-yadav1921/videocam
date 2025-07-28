@@ -5,12 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>🔥 Match Room</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes pulse-glow {
+      0% { box-shadow: 0 0 0px rgba(72, 187, 120, 0.7); }
+      50% { box-shadow: 0 0 25px rgba(72, 187, 120, 1); }
+      100% { box-shadow: 0 0 0px rgba(72, 187, 120, 0.7); }
+    }
+    .glow {
+      animation: pulse-glow 2s infinite;
+    }
+  </style>
 </head>
-<body class="bg-[#0d1321] text-white min-h-screen flex items-center justify-center px-4">
+<body class="bg-[#0d1321] text-white min-h-screen flex flex-col items-center justify-center px-4 py-8 space-y-6">
 
-  <div class="text-center space-y-6">
+  <!-- Match Info -->
+  <div class="text-center space-y-4">
     <h1 class="text-3xl font-bold">🔥 Match Room</h1>
-
     <div class="bg-[#1e293b] p-6 rounded-xl w-full max-w-md mx-auto">
       <div class="flex items-center justify-between mb-4">
         <div class="text-center">
@@ -24,12 +34,34 @@
         </div>
       </div>
       <p class="text-sm text-gray-400" id="match-id">Loading...</p>
-      <button id="readyBtn" class="mt-4 px-4 py-2 bg-green-600 rounded-xl font-semibold hover:bg-green-700 hidden">
+      <button id="readyBtn" class="mt-4 px-4 py-2 bg-green-600 glow rounded-xl font-semibold hover:bg-green-700 hidden transition-transform hover:scale-105">
         ✅ Ready to Battle
       </button>
     </div>
   </div>
 
+  <!-- Video Area -->
+  <div class="w-full max-w-4xl flex flex-col items-center space-y-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+      <video id="localVideo" autoplay muted playsinline class="w-full rounded-xl border-4 border-green-500"></video>
+      <video id="remoteVideo" autoplay playsinline class="w-full rounded-xl border-4 border-red-500"></video>
+    </div>
+
+    <!-- Control Buttons -->
+    <div class="flex space-x-4 mt-4">
+      <button id="toggleMicBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl font-semibold">
+        🎤 Mic Off
+      </button>
+      <button id="toggleCamBtn" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-xl font-semibold">
+        🎥 Camera Off
+      </button>
+      <button id="startCallBtn" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-xl font-semibold">
+        📞 Ready to Call
+      </button>
+    </div>
+  </div>
+
+  <!-- Firebase + Logic -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -62,57 +94,65 @@
     let currentUser = null;
 
     onAuthStateChanged(auth, async (user) => {
-      if (!user) {
+      if (user) {
+        currentUser = user;
+        const matchRef = doc(db, "roastMatches", matchId);
+        const matchSnap = await getDoc(matchRef);
+        if (matchSnap.exists()) {
+          const data = matchSnap.data();
+          if (!data.player2Info && data.player1 !== user.uid) {
+            await updateDoc(matchRef, {
+              player2: user.uid,
+              player2Info: {
+                name: user.displayName,
+                photo: user.photoURL
+              }
+            });
+          }
+        }
+
+        // Listen for player info updates
+        onSnapshot(doc(db, "roastMatches", matchId), (docSnap) => {
+          const data = docSnap.data();
+          if (data.player1Info) {
+            player1Photo.src = data.player1Info.photo || "default1.png";
+            player1Name.textContent = data.player1Info.name || "Player 1";
+          }
+          if (data.player2Info) {
+            player2Photo.src = data.player2Info.photo || "default2.png";
+            player2Name.textContent = data.player2Info.name || "Player 2";
+          }
+          if (data.player1Info && data.player2Info) {
+            readyBtn.classList.remove("hidden");
+          }
+        });
+
+        // Ready to Battle click
+        readyBtn.addEventListener("click", async () => {
+          readyBtn.textContent = "⚡ Entering Battle Room...";
+          readyBtn.disabled = true;
+          readyBtn.classList.add("opacity-70", "cursor-not-allowed");
+
+          // Optional: Update ready status
+          const matchRef = doc(db, "roastMatches", matchId);
+          const matchData = (await getDoc(matchRef)).data();
+          const field = user.uid === matchData.player1 ? "player1Ready" : "player2Ready";
+          await updateDoc(matchRef, { [field]: true });
+
+          // Little delay then redirect
+          setTimeout(() => {
+            window.location.href = `battle.html?matchId=${matchId}`;
+          }, 1500);
+        });
+
+      } else {
         const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
-        return;
+        signInWithPopup(auth, provider);
       }
-
-      currentUser = user;
-      const matchRef = doc(db, "roastMatches", matchId);
-      const matchSnap = await getDoc(matchRef);
-
-      if (!matchSnap.exists()) {
-        alert("⚠️ Match not found!");
-        return;
-      }
-
-      const matchData = matchSnap.data();
-
-      // Auto assign player2 if empty
-      if (!matchData.player2Info && matchData.player1 !== user.uid) {
-        try {
-          await updateDoc(matchRef, {
-            player2: user.uid,
-            player2Info: {
-              name: user.displayName,
-              photo: user.photoURL
-            }
-          });
-        } catch (err) {
-          console.error("Failed to assign player 2:", err);
-        }
-      }
-
-      // Real-time UI updates
-      onSnapshot(matchRef, (docSnap) => {
-        const data = docSnap.data();
-
-        if (data.player1Info) {
-          player1Photo.src = data.player1Info.photo || "default1.png";
-          player1Name.textContent = data.player1Info.name || "Player 1";
-        }
-
-        if (data.player2Info) {
-          player2Photo.src = data.player2Info.photo || "default2.png";
-          player2Name.textContent = data.player2Info.name || "Player 2";
-        }
-
-        if (data.player1Info && data.player2Info) {
-          readyBtn.classList.remove("hidden");
-        }
-      });
     });
   </script>
+
+  <!-- match-room.js -->
+  <script type="module" src="match-room.js"></script>
 </body>
 </html>
